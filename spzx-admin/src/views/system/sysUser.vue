@@ -134,10 +134,9 @@
 
 <script setup>
 import { ref,onMounted } from 'vue'; 
-//DoAssignRoleToUser
-import {GetSysUserListByPage,SaveSysUser,UpdateSysUser,DeleteSysUser} from '@/api/sysUser'
+import { GetSysUserListByPage,SaveSysUser,UpdateSysUser,DeleteSysUser,DoAssignRoleToUser} from '@/api/sysUser'
 import { ElMessage, ElMessageBox } from 'element-plus'
-// import {GetAllRoleList} from '@/api/sysRole'
+import { GetAllRoleList } from '@/api/sysRole'
 ///////////////用户分配角色
 // 角色列表
 const userRoleIds = ref([])
@@ -152,11 +151,11 @@ const showAssignRole = async row => {
     dialogRoleVisible.value = true
 
     //得到所有角色
-    // const {data} = await GetAllRoleList(row.id)
-    // allRoles.value = data.allRolesList
+    const {data} = await GetAllRoleList(row.id)
+    allRoles.value = data.allRolesList
 
     //用户分配过的角色
-    // userRoleIds.value = data.sysUserRoles
+    userRoleIds.value = data.sysUserRoles
 }
 
 //分配角色
@@ -165,12 +164,12 @@ const doAssign = async ()=>{
         userId: sysUser.value.id,
         roleIdList: userRoleIds.value
     }
-    // const {code} = await DoAssignRoleToUser(assignRoleVo)
-    // if(code === 200) {
-    //     ElMessage.success("操作成功")
-    //     dialogRoleVisible.value = false
-    //     fetchData()
-    // }
+    const {code} = await DoAssignRoleToUser(assignRoleVo)
+    if(code === 200) {
+        ElMessage.success("操作成功")
+        dialogRoleVisible.value = false
+        fetchData()
+    }
 }
 ///////////////上传
 import { useApp } from '@/pinia/modules/app'

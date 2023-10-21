@@ -33,10 +33,9 @@ export const DeleteSysRole = (roleId) => {
     })
 }
 
-//
-// export const GetAllRoleList = (roleId) => {
-//     return request({
-//         url: `${base_api}/deleteSysRole/${roleId}`,
-//         method:'delete'
-//     })
-// }
+export const GetAllRoleList = (userId) => {
+    return request({
+        url: `${base_api}/findAllRole/${userId}`,
+        method:'get'
+    })
+}

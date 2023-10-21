@@ -2,13 +2,6 @@ import request from '@/utils/request'
 
 const base_api = '/admin/system/sysUser'
 
-// export const DoAssignRoleToUser = (current,limit,queryDto) => {
-//     return request({
-//         url: `${base_api}/findByPage/${current}/${limit}`,
-//         method:'post',
-//         data:queryDto,
-//     })
-// }
 export const GetSysUserListByPage = (current,limit,queryDto) => {
     return request({
         url: `${base_api}/findByPage/${current}/${limit}`,
@@ -37,5 +30,13 @@ export const DeleteSysUser = (userId) => {
     return request({
         url: `${base_api}/deleteSysUser/${userId}`,
         method:'delete'
+    })
+}
+
+export const DoAssignRoleToUser = (assginRoleVo) => {
+    return request({
+        url: `${base_api}/saveAssignRole`,
+        method:'post',
+        data:assginRoleVo,
     })
 }
