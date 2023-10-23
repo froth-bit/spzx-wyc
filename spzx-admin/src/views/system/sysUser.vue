@@ -252,7 +252,7 @@ const total = ref(0)
 //分页
 const pageParamsForm = {
     page:1, //当前页
-    limit:3 //每页记录数
+    limit:10 //每页记录数
 }
 const pageParams = ref(pageParamsForm)
 

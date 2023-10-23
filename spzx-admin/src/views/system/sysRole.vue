@@ -29,7 +29,7 @@
                     <el-input v-model="sysRole.roleName"/>
                 </el-form-item>
                 <el-form-item label="角色Code">
-                    <el-input v-model="sysRole.roleCode"/>
+                    <el-input  v-model="sysRole.roleCode"/>
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="submit">提交</el-button>
@@ -43,7 +43,7 @@
             <el-table-column prop="roleName" label="角色名称" width="180" />
             <el-table-column prop="roleCode" label="角色code" width="180" />
             <el-table-column prop="createTime" label="创建时间" />
-            <el-table-column label="操作"  align="center" width="280" #default="scope">
+            <el-table-column label="操作" align="center" width="280" #default="scope">
                 <el-button type="primary" size="small" @click="editShow(scope.row)">
                     修改
                 </el-button>
@@ -56,6 +56,27 @@
                 </el-button>
             </el-table-column>
         </el-table>
+
+        <!-- 分配菜单的对话框 
+        // tree组件添加ref属性，后期方便进行tree组件对象的获取
+        -->
+        <el-dialog v-model="dialogMenuVisible" title="分配菜单" width="40%">
+            <el-form label-width="80px">
+                <el-tree
+                        :data="sysMenuTreeList"
+                        ref="tree"   
+                        show-checkbox
+                        default-expand-all
+                        :check-on-click-node="true"
+                        node-key="id"
+                        :props="defaultProps"
+                />
+                <el-form-item>
+                    <el-button type="primary" @click="doAssign">提交</el-button>
+                    <el-button @click="dialogMenuVisible = false">取消</el-button>
+                </el-form-item>
+            </el-form>
+        </el-dialog>
 
         <!--分页条-->
         <el-pagination
@@ -73,72 +94,125 @@
 
 <script setup>
 import {ref,onMounted} from 'vue'
-import {GetSysRoleListByPage,SaveSysRole,UpdateSysRole,DeleteSysRole} from '@/api/sysRole'
+import {DoAssignMenuIdToSysRole,GetSysRoleMenuIds,GetSysRoleListByPage,SaveSysRole,UpdateSysRole,DeleteSysRole} from '@/api/sysRole'
 import { ElMessage,ElMessageBox } from 'element-plus'
 
-//角色添加
-const dialogVisible = ref(false)
-
-const roleForm = {
-    roleName:"",
-    roleCode:"",
-    id:""
+/////////////////////////////分配菜单
+const defaultProps = {
+  children: 'children',
+  label: 'title',
 }
-const sysRole = ref(roleForm)
+const dialogMenuVisible = ref(false)
+const sysMenuTreeList = ref([])
 
-//点击添加弹出框
-const addShow = ()=>{
-    sysRole.value = {}
-    dialogVisible.value = true 
+// 树对象变量
+const tree = ref() 
+
+// 默认选中的菜单数据集合
+let roleId = ref()
+const showAssignMenu = async row => { 
+  dialogMenuVisible.value = true
+  roleId = row.id
+  const { data } = await GetSysRoleMenuIds(row.id)   // 请求后端地址获取所有的菜单数据，以及当前角色所对应的菜单数据
+  sysMenuTreeList.value = data.sysMenuList
+  tree.value.setCheckedKeys(data.roleMenuIds)   // 进行数据回显
 }
 
-//删除角色
-const deleteById = (row)=>{
-    ElMessageBox.confirm('此操作将删除记录，是否继续？','Warning',{
-        confirmButtonText:'确定',
-        cancelButtonText:'取消',
-        type:'warning',
-    }).then(async()=>{
-        const {code} = await DeleteSysRole(row.id)
-        if (code === 200){
-            //提示信息
-            ElMessage.success("操作成功")
-            fetchData()
+const doAssign = async () => {
+    const checkedNodes = tree.value.getCheckedNodes() ; // 获取选中的节点
+    const checkedNodesIds = checkedNodes.map(node => {  // 获取选中的节点的id
+        return {
+            id: node.id,
+            isHalf: 0
         }
+    })
+        
+    // 获取半选中的节点数据，当一个节点的子节点被部分选中时，该节点会呈现出半选中的状态
+    const halfCheckedNodes = tree.value.getHalfCheckedNodes() ; 
+    const halfCheckedNodesIds = halfCheckedNodes.map(node => {   // 获取半选中节点的id
+        return {
+            id: node.id,
+            isHalf: 1
+        }
+    })
+        
+    // 将选中的节点id和半选中的节点的id进行合并
+    const menuIds = [...checkedNodesIds , ...halfCheckedNodesIds]  
+    console.log(menuIds);
+
+    // 构建请求数据
+    const assignMenuDto = {
+        roleId: roleId,
+        menuIdList: menuIds
+    }
+ 
+    // 发送请求
+    await DoAssignMenuIdToSysRole(assignMenuDto) ;
+    ElMessage.success('操作成功')
+    dialogMenuVisible.value = false
+} 
+
+/////////////////////////////角色删除
+const deleteById = (row)=>{
+    ElMessageBox.confirm('此操作将永久删除该记录, 是否继续?', 'Warning', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+    }).then(async () => {
+      const {code} = await DeleteSysRole(row.id)
+      if(code === 200) {
+        ElMessage.success("删除成功")
+        fetchData()
+      }
     })
 }
 
+////////////////////////////角色添加和修改
+const roleForm = {
+    id:"",
+    roleName:"",
+    roleCode:""
+}
+const sysRole = ref(roleForm)
+
+//弹框设置 true弹出框
+const dialogVisible = ref(false)
 
 //弹出框数据回显
 const editShow = (row)=>{
-    //对象拓展运算符，复制对象
+    //对象拓展运算符  
     sysRole.value = {...row}
     dialogVisible.value = true
 }
 
-const submit = async ()=>{
-    if(!sysRole.value.id){
-        const {code} =  await SaveSysRole(sysRole.value)
-        if (code === 200){
-            //关闭弹窗
+//点击添加弹出框的方法
+const addShow = ()=>{
+    sysRole.value = {}
+    dialogVisible.value = true
+}
+
+//添加和修改的方法
+//判断sysRole包含id值进行修改操作，不包含id进行添加操作
+const submit = async ()=> {
+    if(!sysRole.value.id) {//没有id，添加操作
+        const {code} = await SaveSysRole(sysRole.value)
+        if(code === 200) {
+            //关闭弹框
             dialogVisible.value = false
             //提示信息
-            ElMessage.success("操作成功")
+            ElMessage.success('操作成功')
+            //刷新页面
             fetchData()
         }
-    }else{
+    } else {//有id，修改操作
         const {code} = await UpdateSysRole(sysRole.value)
-        if (code === 200){
-            //关闭弹窗
+        if(code === 200) {
             dialogVisible.value = false
-            //提示信息
             ElMessage.success("操作成功")
             fetchData()
         }
     }
-    
 }
-
 
 ///////////////////////////角色列表
 //定义数据模型
@@ -149,7 +223,7 @@ let total = ref(0) //总记录数
 //分页数据
 const pageParamsForm = {
     page: 1,//当前页
-    limit: 3,//每页记录数
+    limit: 10,//每页记录数
 }
 const pageParams = ref(pageParamsForm)
 

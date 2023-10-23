@@ -39,3 +39,18 @@ export const GetAllRoleList = (userId) => {
         method:'get'
     })
 }
+
+export const GetSysRoleMenuIds = (roleId) => {
+    return request({
+        url: `admin/system/sysRoleMenu/findSysRoleMenuByRoleId/${roleId}`,
+        method:'get'
+    })
+}
+
+export const DoAssignMenuIdToSysRole = (assignMenuDto) => {
+    return request({
+        url: `admin/system/sysRoleMenu/doAssign`,
+        method:'post',
+        data:assignMenuDto
+    })
+}
